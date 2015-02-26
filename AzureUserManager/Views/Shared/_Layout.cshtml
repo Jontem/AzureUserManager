@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+
+<html ng-app="AzureUserManager">
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    <link rel="stylesheet" type="text/css" href="~/Content/bootstrap.min.css">
+    <script src="~/Scripts/angular.js"></script>
+    <script src="~/Scripts/jquery-1.9.1.min.js"></script>
+    <script src="~/App/app.js"></script>
+</head>
+    <body>
+        <div class="container">
+            <nav class="navbar navbar-inverse">
+                <ul class="nav navbar-nav">
+                    <li class="active"><a href="#">Home</a></li>
+                    <li><a href="#">Link</a></li>
+                    <li><a href="#">Link</a></li>
+                </ul>
+            </nav>
+            <div class="row">
+                <div class="col-lg-offset-2 col-lg-8" style="background-color: red">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

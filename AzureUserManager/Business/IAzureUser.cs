@@ -6,7 +6,7 @@
         
         string LastName { get; set; }
 
-        string UserId { get; set; }
+        string Id { get; set; }
         
         string Email { get; set; }
 
@@ -14,6 +14,6 @@
 
         bool? AccountEnabled { get; set; }
 
-        string MobilePhone { get; set; }
+        string Password { get; set; }
     }
 }

@@ -29,41 +29,58 @@ namespace AzureUserManager.Business
         {
             IUser newUser = new User();
             newUser.DisplayName = string.Format("{0} {1}", azureUser.FirstName, azureUser.LastName);
-            newUser.UserPrincipalName = string.Format("{0}@{1}", azureUser.UserId, DefaultDomainName);
+            newUser.UserPrincipalName = string.Format("{0}@{1}", azureUser.Id, DefaultDomainName);
             newUser.AccountEnabled = true;
-            newUser.MailNickname = azureUser.UserId;
+            newUser.MailNickname = azureUser.Id;
             newUser.State = azureUser.HsaId;
             newUser.PasswordProfile = newUser.PasswordProfile = new PasswordProfile
             {
-                //Password = "TempP@ssw0rd!",
-                Password = "123",
+                Password = azureUser.Password,
                 ForceChangePasswordNextLogin = true
             };
 
             return _activeDirectoryClient.Users.AddUserAsync(newUser);
         }
 
-        public Task DeleteUser(IAzureUser azureUser)
+        public async Task DeleteUser(IAzureUser azureUser)
         {
-            throw new NotImplementedException();
+            var userFromStore = await GetSingleUser(azureUser.Id);
+
+            await userFromStore.DeleteAsync();
         }
 
         public async Task<IAzureUser> Get(string userId)
         {
-            var users = await FindUsers(x => x.UserPrincipalName.Equals(userId, StringComparison.OrdinalIgnoreCase));
-            var user = users.FirstOrDefault();
+            var user = await GetSingleUser(userId);
 
             return (user != null ) ? CreateUserViewModel(user) : null;
         }
 
-        public Task UpdateUser(IAzureUser azureUser)
+        public async Task<IEnumerable<IAzureUser>> GetAll()
         {
-            throw new NotImplementedException();
+            var users = await GetAllUsers();
+
+            return users.Select(CreateUserViewModel);
+        }
+
+        public async Task UpdateUser(IAzureUser azureUser)
+        {
+            var userFromStore = await GetSingleUser(azureUser.Id);
+
+            userFromStore.GivenName = azureUser.FirstName;
+            userFromStore.Surname = azureUser.LastName;
+            userFromStore.UserPrincipalName = azureUser.Id;
+            userFromStore.State = azureUser.HsaId;
+            userFromStore.OtherMails.Clear();
+            userFromStore.OtherMails.Add(azureUser.Email);
+            userFromStore.AccountEnabled = azureUser.AccountEnabled;
+
+            await userFromStore.UpdateAsync();
         }
 
         public async Task<IEnumerable<IAzureUser>> SearchUser(string searchKey)
         {
-            var users = GetAllUsers();
+            var users = await GetAllUsers();
             var filteredUsers = users.Where(x => x.UserPrincipalName.Contains(searchKey.ToLower())).ToList();
             return filteredUsers.Select(CreateUserViewModel);
         }
@@ -76,11 +93,18 @@ namespace AzureUserManager.Business
             return users;
         }
 
-        private IEnumerable<IUser> GetAllUsers()
+        private async Task<IEnumerable<IUser>> GetAllUsers()
         {
-            var allUsers = Task.Run(async () => await _activeDirectoryClient.Users.ExecuteAsync()).Result.CurrentPage.ToList();
-            return allUsers;
-        } 
+            var collection =  await _activeDirectoryClient.Users.ExecuteAsync();
+            return collection.CurrentPage.ToList();
+        }
+
+        private async Task<IUser> GetSingleUser(string userId)
+        {
+            var users = await FindUsers(x => x.UserPrincipalName.Equals(userId, StringComparison.OrdinalIgnoreCase));
+            var user = users.FirstOrDefault();
+            return user;
+        }
 
         private IAzureUser CreateUserViewModel(IUser user)
         {
@@ -91,7 +115,7 @@ namespace AzureUserManager.Business
                 FirstName = user.GivenName,
                 LastName = user.Surname,
                 HsaId = user.State,
-                UserId = user.UserPrincipalName
+                Id = user.UserPrincipalName
             };
         }
     }

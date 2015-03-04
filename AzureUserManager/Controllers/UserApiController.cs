@@ -41,6 +41,30 @@ namespace AzureUserManager.Controllers
 
         // GET
         [ActionName("Default")]
+        public async Task<IHttpActionResult> Get()
+        {
+            List<UserViewModel> users;
+
+            try
+            {
+                var res  = await _userStore.GetAll();
+                users = res.Cast<UserViewModel>().ToList();
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
+
+            if (!users.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(users);
+        }
+
+        // GET
+        [ActionName("Default")]
         public async Task<IHttpActionResult> Get(string userId)
         {
             IAzureUser user;
@@ -64,7 +88,7 @@ namespace AzureUserManager.Controllers
 
         // POST
         [ActionName("Default")]
-        public IHttpActionResult Post([FromBody]UserViewModel azureUser)
+        public async Task<IHttpActionResult> Post([FromBody]UserViewModel azureUser)
         {
             if (!ModelState.IsValid)
             {
@@ -73,7 +97,7 @@ namespace AzureUserManager.Controllers
 
             try
             {
-                _userStore.AddUser(azureUser);
+                await _userStore.AddUser(azureUser);
             }
             catch (Exception e)
             {
@@ -95,7 +119,7 @@ namespace AzureUserManager.Controllers
             IAzureUser user;
             try
             {
-                user = await _userStore.Get(azureUser.UserId);
+                user = await _userStore.Get(azureUser.Id);
             }
             catch (Exception e)
             {
@@ -110,7 +134,7 @@ namespace AzureUserManager.Controllers
 
             try
             {
-                _userStore.UpdateUser(azureUser);
+                await _userStore.UpdateUser(azureUser);
             }
             catch (Exception e)
             {
@@ -123,9 +147,9 @@ namespace AzureUserManager.Controllers
 
         // DELETE
         [ActionName("Default")]
-        public async Task<IHttpActionResult> Delete([FromBody]IAzureUser azureUser)
+        public async Task<IHttpActionResult> Delete(string userId)
         {
-            if (!ModelState.IsValid)
+            if (string.IsNullOrWhiteSpace(userId))
             {
                 return BadRequest("Missing Required fields");
             }
@@ -133,7 +157,7 @@ namespace AzureUserManager.Controllers
             IAzureUser userFromStore;
             try
             {
-                userFromStore = await _userStore.Get(azureUser.UserId);
+                userFromStore = await _userStore.Get(userId);
             }
             catch (Exception e)
             {
@@ -148,7 +172,7 @@ namespace AzureUserManager.Controllers
 
             try
             {
-                _userStore.DeleteUser(userFromStore);
+                await _userStore.DeleteUser(userFromStore);
             }
             catch (Exception e)
             {

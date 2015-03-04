@@ -1,0 +1,11 @@
+﻿i.fa-spinner {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  font-size: 10rem;
+  opacity: 0.8; }
+
+form.show-spinner {
+  opacity: 0.5; }
+
+/*# sourceMappingURL=Site.css.map */

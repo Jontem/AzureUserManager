@@ -24,7 +24,7 @@ namespace AzureUserManager.Tests
         }
 
         [TestMethod]
-        public async Task UserApiControllerTest_Get_returnsNotFound()
+        public async Task UserApiControllerTest_GetSingle_returnsNotFound()
         {
             // Arrange
 
@@ -37,7 +37,7 @@ namespace AzureUserManager.Tests
         }
 
         [TestMethod]
-        public async Task UserApiControllerTest_Get_returnsInteralServerError()
+        public async Task UserApiControllerTest_GetSingle_returnsInteralServerError()
             {
             // Arrange
             _userStore.Setup(x => x.Get(It.IsAny<string>())).Throws(new Exception("asd"));
@@ -51,7 +51,7 @@ namespace AzureUserManager.Tests
         }
 
         [TestMethod]
-        public async Task UserControllerTest_Get_returnsOk()
+        public async Task UserControllerTest_GetSingle_returnsOk()
         {
             // Arrange
             _userStore.Setup(x => x.Get(It.IsAny<string>())).Returns(Task.FromResult<IAzureUser>(new UserViewModel { FirstName = "Jonathan" }));
@@ -65,7 +65,53 @@ namespace AzureUserManager.Tests
         }
 
         [TestMethod]
-        public void UserControllerTest_Post_returnBadRequest()
+        public async Task UserApiControllerTest_Get_returnsInteralServerError()
+        {
+            // Arrange
+            _userStore.Setup(x => x.GetAll()).Throws(new Exception("asd"));
+
+            // Act
+            var controller = new UserApiController(_userStore.Object);
+            var res = await controller.Get();
+
+            // Assert
+            Assert.IsInstanceOfType(res, typeof(ExceptionResult));
+        }
+
+        [TestMethod]
+        public async Task UserApiControllerTest_Get_returnsNotFound()
+        {
+            // Arrange
+
+            // Act
+            var controller = new UserApiController(_userStore.Object);
+            var res = await controller.Get();
+
+            // Assert
+            Assert.IsInstanceOfType(res, typeof(NotFoundResult));
+        }
+
+        [TestMethod]
+        public async Task UserApiControllerTest_Get_returnsOk()
+        {
+            // Arrange
+            _userStore.Setup(x => x.GetAll()).Returns(Task.FromResult<IEnumerable<IAzureUser>>(new List<UserViewModel>
+            {
+                new UserViewModel(),
+                new UserViewModel(),
+            }));
+
+            // Act
+            var controller = new UserApiController(_userStore.Object);
+            var res = await controller.Get() as OkNegotiatedContentResult<List<UserViewModel>>;
+
+            // Assert
+            Assert.IsNotNull(res);
+            Assert.AreEqual(2, res.Content.Count);
+        }
+
+        [TestMethod]
+        public async Task UserControllerTest_Post_returnBadRequest()
         {
             // Arrange
             var user = new UserViewModel { FirstName = "Jonathan" };
@@ -73,14 +119,14 @@ namespace AzureUserManager.Tests
             // Act
             var controller = new UserApiController(_userStore.Object);
             controller.ModelState.AddModelError("error", "error");
-            var res = controller.Post(user);
+            var res = await controller.Post(user);
 
             // Assert
             Assert.IsInstanceOfType(res, typeof(BadRequestErrorMessageResult));
         }
 
         [TestMethod]
-        public void UserControllerTest_Post_returnsInternalServerError()
+        public async Task UserControllerTest_Post_returnsInternalServerError()
         {
             // Arrange
             _userStore.Setup(x => x.AddUser(It.IsAny<IAzureUser>())).Throws(new Exception("asd"));
@@ -88,21 +134,21 @@ namespace AzureUserManager.Tests
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            var res = controller.Post(user);
+            var res = await controller.Post(user);
 
             // Assert
             Assert.IsInstanceOfType(res, typeof(ExceptionResult));
         }
 
         [TestMethod]
-        public void UserControllerTest_Post_returnsOk()
+        public async Task UserControllerTest_Post_returnsOk()
         {
             // Arrange
             var user = new UserViewModel { FirstName = "Jonathan" };
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            var res = controller.Post(user);
+            var res = await controller.Post(user);
 
             // Assert
             _userStore.Verify(x => x.AddUser(It.IsAny<IAzureUser>()));
@@ -159,7 +205,7 @@ namespace AzureUserManager.Tests
         public async Task UserControllerTest_Put_returnsInternalServerErrorOnUpdate()
         {
             // Arrange
-            var user = new UserViewModel { FirstName = "Jonathan", LastName = "Mourtada", UserId = "jonte" };
+            var user = new UserViewModel { FirstName = "Jonathan", LastName = "Mourtada", Id = "jonte" };
             _userStore.Setup(x => x.Get(It.IsAny<string>())).Returns(Task.FromResult<IAzureUser>(user));
             _userStore.Setup(x => x.UpdateUser(It.IsAny<IAzureUser>())).Throws(new Exception("asd"));
 
@@ -176,7 +222,7 @@ namespace AzureUserManager.Tests
         public async Task UserControllerTest_Put_returnsOk()
         {
             // Arrange
-            var user = new UserViewModel { FirstName = "Jonathan", LastName = "Mourtada", UserId = "jonte" };
+            var user = new UserViewModel { FirstName = "Jonathan", LastName = "Mourtada", Id = "jonte" };
             _userStore.Setup(x => x.Get(It.IsAny<string>())).Returns(Task.FromResult<IAzureUser>(user));
 
             // Act
@@ -196,8 +242,7 @@ namespace AzureUserManager.Tests
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            controller.ModelState.AddModelError("error", "error");
-            var res = await controller.Delete(user);
+            var res = await controller.Delete("");
 
             // Assert
             Assert.IsInstanceOfType(res, typeof(BadRequestErrorMessageResult));
@@ -212,7 +257,7 @@ namespace AzureUserManager.Tests
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            var res = await controller.Delete(user);
+            var res = await controller.Delete("jonte@mourtada.se");
 
             // Assert
             Assert.IsInstanceOfType(res, typeof(ExceptionResult));
@@ -222,11 +267,11 @@ namespace AzureUserManager.Tests
         public async Task UserControllerTest_Delete_returnsNotFound()
         {
             // Arrange
-            var user = new FakeUser { FirstName = "Jonathan" };
+            var user = new UserViewModel { FirstName = "Jonathan" };
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            var res = await controller.Delete(user);
+            var res = await controller.Delete("jonte@mourtada.se");
 
             // Assert
             Assert.IsInstanceOfType(res, typeof(NotFoundResult));
@@ -242,7 +287,7 @@ namespace AzureUserManager.Tests
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            var res = await controller.Delete(user);
+            var res = await controller.Delete("jonte@mourtada.se");
 
             // Assert
             _userStore.Verify(x => x.DeleteUser(It.IsAny<IAzureUser>()));
@@ -258,7 +303,7 @@ namespace AzureUserManager.Tests
 
             // Act
             var controller = new UserApiController(_userStore.Object);
-            var res = await controller.Delete(user);
+            var res = await controller.Delete("jonte@mourtada.se");
 
             // Assert
             _userStore.Verify(x => x.DeleteUser(It.IsAny<IAzureUser>()));

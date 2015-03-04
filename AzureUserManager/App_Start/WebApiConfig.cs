@@ -20,8 +20,8 @@ namespace AzureUserManager
 
             config.Routes.MapHttpRoute(
                 name: "DefaultApi2",
-                routeTemplate: "api/{controller}/{action}",
-                defaults: new { }
+                routeTemplate: "api/{controller}/{action}/{searchKey}",
+                defaults: new { searchKey = RouteParameter.Optional }
             );
 
             config.Routes.MapHttpRoute(
